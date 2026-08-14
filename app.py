@@ -940,8 +940,19 @@ if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db
                 secret_key = "gcp_service_account"
             if secret_key:
                 creds_dict = dict(st.secrets[secret_key])
-                if "private_key" in creds_dict:
-                    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+                raw_pk = creds_dict.get("private_key", "")
+                st.write("Ham key tipi:", str(type(raw_pk)))
+                st.write("Ham key uzunluğu:", len(raw_pk))
+                st.write("Ham key içindeki gerçek newline sayısı:", raw_pk.count("\n"))
+                st.write("Ham key içindeki literal \\n sayısı:", raw_pk.count("\\n"))
+                st.write("Ham key ilk 50 karakter:", repr(raw_pk[:50]))
+                st.write("Ham key son 50 karakter:", repr(raw_pk[-50:]))
+                
+                pk_clean = raw_pk.replace("\\n", "\n").replace("\r", "")
+                st.write("Temizlenmiş key uzunluğu:", len(pk_clean))
+                st.write("Temizlenmiş key içindeki gerçek newline sayısı:", pk_clean.count("\n"))
+                
+                creds_dict["private_key"] = pk_clean
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
                 st.success(f"Secrets '{secret_key}' başarılı şekilde yüklendi.")
                 client = gspread.authorize(creds)
