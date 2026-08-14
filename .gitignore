@@ -1,0 +1,6 @@
+credentials.json
+__pycache__/
+.gemini/
+.system_generated/
+Yeni Metin Belgesi.txt
+*.log
