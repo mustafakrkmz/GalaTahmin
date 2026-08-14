@@ -308,10 +308,31 @@ def safe_get_all_records(ws, max_retries=2, delay=1.5):
         try:
             return ws.get_all_records()
         except Exception as e:
-            if "429" in str(e) or "Quota exceeded" in str(e):
-                if attempt < max_retries:
-                    time.sleep(delay * (attempt + 1))
-                    continue
+            if ("429" in str(e) or "Quota exceeded" in str(e)) and attempt < max_retries:
+                time.sleep(delay * (attempt + 1))
+                continue
+            raise e
+
+def safe_append_row(ws, values, max_retries=2, delay=1.5):
+    """Google Sheets satır ekleme işlemini güvenli ve tekrar denemeli şekilde yapar."""
+    for attempt in range(max_retries + 1):
+        try:
+            return ws.append_row(values)
+        except Exception as e:
+            if ("429" in str(e) or "Quota exceeded" in str(e)) and attempt < max_retries:
+                time.sleep(delay * (attempt + 1))
+                continue
+            raise e
+
+def safe_update_cell(ws, row, col, val, max_retries=2, delay=1.5):
+    """Google Sheets hücre güncelleme işlemini güvenli ve tekrar denemeli şekilde yapar."""
+    for attempt in range(max_retries + 1):
+        try:
+            return ws.update_cell(row, col, val)
+        except Exception as e:
+            if ("429" in str(e) or "Quota exceeded" in str(e)) and attempt < max_retries:
+                time.sleep(delay * (attempt + 1))
+                continue
             raise e
 
 @st.cache_data(ttl=60)
@@ -361,11 +382,11 @@ def update_user_password(username, new_password):
             records = safe_get_all_records(ws)
             for idx, row in enumerate(records, start=2):
                 if normalize_username(row.get("username")) == username:
-                    ws.update_cell(idx, 2, new_password)
-                    ws.update_cell(idx, 3, updated_at)
+                    safe_update_cell(ws, idx, 2, new_password)
+                    safe_update_cell(ws, idx, 3, updated_at)
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            st.error(f"Şifre güncellenirken hata oluştu: {e}")
     st.cache_data.clear()
 
 @st.cache_data(ttl=30)
@@ -406,38 +427,54 @@ def insert_prediction(username, match_id, match_title, gs_score, away_score):
     gs_client, gs_sheet = get_gsheet_client()
     
     if gs_sheet:
-        ws_p = gs_sheet.worksheet("predictions")
-        records = ws_p.get_all_records()
-        for idx, row in enumerate(records, start=2):
-            if normalize_username(row.get("username")) == username and str(row.get("match_id")) == str(match_id):
-                ws_p.update_cell(idx, 3, int(gs_score))
-                ws_p.update_cell(idx, 4, int(away_score))
-                return
-        ws_p.append_row([username, match_id, int(gs_score), int(away_score), created_at])
-        
-        ws_m = gs_sheet.worksheet("match_results")
-        existing_matches = ws_m.get_all_records()
-        match_exists = any(str(m.get("match_id")) == str(match_id) for m in existing_matches)
-        if not match_exists:
-            ws_m.append_row([match_id, match_title, 0, 0, 0, 0])
-    st.cache_data.clear()
+        try:
+            ws_p = gs_sheet.worksheet("predictions")
+            records = safe_get_all_records(ws_p)
+            for idx, row in enumerate(records, start=2):
+                if normalize_username(row.get("username")) == username and str(row.get("match_id")) == str(match_id):
+                    safe_update_cell(ws_p, idx, 3, int(gs_score))
+                    safe_update_cell(ws_p, idx, 4, int(away_score))
+                    st.cache_data.clear()
+                    return True
+            safe_append_row(ws_p, [str(username), str(match_id), int(gs_score), int(away_score), str(created_at)])
+            
+            ws_m = gs_sheet.worksheet("match_results")
+            existing_matches = safe_get_all_records(ws_m)
+            match_exists = any(str(m.get("match_id")) == str(match_id) for m in existing_matches)
+            if not match_exists:
+                safe_append_row(ws_m, [str(match_id), str(match_title), 0, 0, 0, 0])
+            st.cache_data.clear()
+            return True
+        except Exception as e:
+            st.error(f"❌ Tahmin kaydedilirken bir hata oluştu: {str(e)}")
+            if "PERMISSION_DENIED" in str(e) or "403" in str(e):
+                st.warning("⚠️ **Yetki Uyarısı:** Lütfen Google Sheets tablonuzda Service Account e-posta adresine **'Düzenleyen (Editor)'** yetkisi verildiğinden emin olun.")
+            return False
+    return False
 
 def save_match_result(match_id, gs_score, away_score, is_manual=0):
     gs_client, gs_sheet = get_gsheet_client()
     if gs_sheet:
-        ws_m = gs_sheet.worksheet("match_results")
-        records = ws_m.get_all_records()
-        for idx, row in enumerate(records, start=2):
-            if str(row.get("match_id")) == str(match_id):
-                ws_m.update_cell(idx, 3, int(gs_score))
-                ws_m.update_cell(idx, 4, int(away_score))
-                ws_m.update_cell(idx, 5, 1)
-                if len(row) >= 6:
-                    ws_m.update_cell(idx, 6, int(is_manual))
-                st.cache_data.clear()
-                return
-        ws_m.append_row([match_id, "Galatasaray Maçı", int(gs_score), int(away_score), 1, int(is_manual)])
+        try:
+            ws_m = gs_sheet.worksheet("match_results")
+            records = safe_get_all_records(ws_m)
+            for idx, row in enumerate(records, start=2):
+                if str(row.get("match_id")) == str(match_id):
+                    safe_update_cell(ws_m, idx, 3, int(gs_score))
+                    safe_update_cell(ws_m, idx, 4, int(away_score))
+                    safe_update_cell(ws_m, idx, 5, 1)
+                    if len(row) >= 6:
+                        safe_update_cell(ws_m, idx, 6, int(is_manual))
+                    st.cache_data.clear()
+                    return True
+            safe_append_row(ws_m, [str(match_id), "Galatasaray Maçı", int(gs_score), int(away_score), 1, int(is_manual)])
+            st.cache_data.clear()
+            return True
+        except Exception as e:
+            st.error(f"❌ Maç sonucu kaydedilemedi: {str(e)}")
+            return False
     st.cache_data.clear()
+    return False
 
 def reset_manual_override(match_id):
     """Admin'in manuel ezme kilidini kaldırarak otomatik ICS takvim skoruna dönmesini sağlar."""
@@ -1185,15 +1222,16 @@ with tab_tahmin:
                             st.error(f"❌ **Bu skor başkası ({taken_by}) tarafından alındı!** Farklı bir skor seçiniz.")
                             st.stop()
                             
-                    insert_prediction(
+                    success = insert_prediction(
                         username=st.session_state.username,
                         match_id=match_info["match_id"],
                         match_title=match_info["title"],
                         gs_score=input_gs,
                         away_score=input_away
                     )
-                    st.toast("Tahmininiz başarıyla güncellendi! 🎉", icon="✅")
-                    st.rerun()
+                    if success:
+                        st.toast("Tahmininiz başarıyla güncellendi! 🎉", icon="✅")
+                        st.rerun()
             else:
                 st.success(f"🔒 **Tahmininiz Kesinleşti & Kilitlendi:** Galatasaray **{gs_s} - {away_s}** Rakip")
                 st.caption("⚠️ Tahmininizin üzerinden 1 saat geçtiği veya maç başlama saatine 5 dakikadan az kaldığı için kilitlenmiştir.")
@@ -1215,15 +1253,16 @@ with tab_tahmin:
                         st.stop()
                 
                 # Insert prediction
-                insert_prediction(
+                success = insert_prediction(
                     username=st.session_state.username,
                     match_id=match_info["match_id"],
                     match_title=match_info["title"],
                     gs_score=input_gs,
                     away_score=input_away
                 )
-                st.toast("Tahmininiz kaydedildi! 1 saat boyunca düzenleyebilirsiniz. 🎉", icon="✅")
-                st.rerun()
+                if success:
+                    st.toast("Tahmininiz kaydedildi! 1 saat boyunca düzenleyebilirsiniz. 🎉", icon="✅")
+                    st.rerun()
         else:
             st.info("Şu anda yeni tahmin girişi yapılamamaktadır.")
 
