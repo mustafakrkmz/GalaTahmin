@@ -921,10 +921,16 @@ with col_banner:
 if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db_diag"):
     st.subheader("Veritabanı Tanılama Bilgileri")
     st.write("Lokal `credentials.json` var mı?:", os.path.exists("credentials.json"))
-    st.write("Streamlit Secrets anahtarları:", list(st.secrets.keys()) if hasattr(st.secrets, "keys") else "Secrets bulunamadı")
-    if "gcp_service_account" in st.secrets:
+    secrets_keys = []
+    try:
+        secrets_keys = list(st.secrets.keys())
+        st.write("Streamlit Secrets anahtarları:", secrets_keys)
+    except Exception:
+        st.write("Streamlit Secrets anahtarları: Bulunamadı (Lokal çalıştırma)")
+        
+    if "gcp_service_account" in secrets_keys:
         st.write("`gcp_service_account` anahtarı bulundu.")
-    if "gdrive" in st.secrets:
+    if "gdrive" in secrets_keys:
         st.write("`gdrive` anahtarı bulundu.")
         
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
