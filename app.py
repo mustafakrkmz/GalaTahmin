@@ -283,6 +283,18 @@ init_db()
 
 # --- DB & KULLANICI YÖNETİM FONKSİYONLARI ---
 
+def safe_get_all_records(ws, max_retries=2, delay=1.5):
+    """Google Sheets 429 kota aşımlarında kısa bekleme ile tekrar dener."""
+    for attempt in range(max_retries + 1):
+        try:
+            return ws.get_all_records()
+        except Exception as e:
+            if "429" in str(e) or "Quota exceeded" in str(e):
+                if attempt < max_retries:
+                    time.sleep(delay * (attempt + 1))
+                    continue
+            raise e
+
 @st.cache_data(ttl=60)
 def fetch_users():
     """Kullanıcı adı ve şifre haritasını Google Sheets bulut tablosundan canlı çeker."""
@@ -290,7 +302,7 @@ def fetch_users():
     if gs_sheet:
         try:
             ws = gs_sheet.worksheet("users")
-            data = ws.get_all_records()
+            data = safe_get_all_records(ws)
             if data:
                 return {str(row.get("username")).strip().lower(): str(row.get("password")).strip() for row in data if str(row.get("username")).strip()}
         except Exception:
@@ -307,7 +319,7 @@ def update_user_password(username, new_password):
     if gs_sheet:
         try:
             ws = gs_sheet.worksheet("users")
-            records = ws.get_all_records()
+            records = safe_get_all_records(ws)
             for idx, row in enumerate(records, start=2):
                 if str(row.get("username")).strip().lower() == username:
                     ws.update_cell(idx, 2, new_password)
@@ -323,7 +335,7 @@ def fetch_predictions(match_id=None):
     if gs_sheet:
         try:
             ws = gs_sheet.worksheet("predictions")
-            data = ws.get_all_records()
+            data = safe_get_all_records(ws)
             df = pd.DataFrame(data)
             if df.empty:
                 return pd.DataFrame(columns=["username", "match_id", "gs_score", "away_score", "created_at"])
@@ -340,7 +352,7 @@ def fetch_match_results():
     if gs_sheet:
         try:
             ws = gs_sheet.worksheet("match_results")
-            data = ws.get_all_records()
+            data = safe_get_all_records(ws)
             df = pd.DataFrame(data)
             if df.empty:
                 return pd.DataFrame(columns=["match_id", "match_title", "gs_score", "away_score", "is_finished", "is_manual"])
@@ -916,74 +928,6 @@ with col_banner:
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-# --- DEBUG / TEMPORARY DIAGNOSTIC TOOL ---
-if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db_diag"):
-    st.subheader("Veritabanı Tanılama Bilgileri")
-    st.write("Lokal `credentials.json` var mı?:", os.path.exists("credentials.json"))
-    secrets_keys = []
-    try:
-        secrets_keys = list(st.secrets.keys())
-        st.write("Streamlit Secrets anahtarları:", secrets_keys)
-    except Exception:
-        st.write("Streamlit Secrets anahtarları: Bulunamadı (Lokal çalıştırma)")
-        
-    if "gcp_service_account" in secrets_keys:
-        st.write("`gcp_service_account` anahtarı bulundu.")
-    if "gdrive" in secrets_keys:
-        st.write("`gdrive` anahtarı bulundu.")
-        
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    try:
-        if os.path.exists("credentials.json"):
-            creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
-            st.success("Lokal dosya credentials başarıyla yüklendi.")
-        else:
-            secret_key = None
-            if "gdrive" in st.secrets:
-                secret_key = "gdrive"
-            elif "gcp_service_account" in st.secrets:
-                secret_key = "gcp_service_account"
-            if secret_key:
-                creds_dict = dict(st.secrets[secret_key])
-                raw_pk = creds_dict.get("private_key", "")
-                st.write("Ham key tipi:", str(type(raw_pk)))
-                st.write("Ham key uzunluğu:", len(raw_pk))
-                st.write("Ham key içindeki gerçek newline sayısı:", raw_pk.count("\n"))
-                st.write("Ham key içindeki literal \\n sayısı:", raw_pk.count("\\n"))
-                st.write("Ham key ilk 50 karakter:", repr(raw_pk[:50]))
-                st.write("Ham key son 50 karakter:", repr(raw_pk[-50:]))
-                
-                pk_clean = raw_pk.replace("\\n", "\n").replace("\r", "")
-                st.write("Temizlenmiş key uzunluğu:", len(pk_clean))
-                st.write("Temizlenmiş key içindeki gerçek newline sayısı:", pk_clean.count("\n"))
-                
-                import hashlib
-                clean_hash = hashlib.sha256(pk_clean.encode('utf-8')).hexdigest()
-                st.write("Temizlenmiş key SHA256:", clean_hash)
-                
-                correct_hash_with = "8952a561e8ccc0f998aaa7b5c6db3533ba8d95afe32905378635b3f80b7c8348"
-                correct_hash_without = "a61f5b6060046caf9ee786f215a81a23e1fe11f603cfee3e9f0e71be04ef3ff6"
-                
-                if clean_hash == correct_hash_with or clean_hash == correct_hash_without:
-                    st.success("✅ ANAHTAR DOĞRU! (Yereldeki credentials.json ile eşleşiyor)")
-                else:
-                    st.error("❌ ANAHTAR HATALI! (Yereldeki credentials.json ile eşleşmiyor. Kopyalarken bir hata oluşmuş!)")
-                
-                creds_dict["private_key"] = pk_clean
-                creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-                st.success(f"Secrets '{secret_key}' başarılı şekilde yüklendi.")
-                client = gspread.authorize(creds)
-                st.success("Gspread yetkilendirmesi başarılı.")
-                sheet_name = st.secrets.get("GSHEET_NAME", "GS_Skor_Tahmin_DB")
-                sheet = client.open(sheet_name)
-                st.success(f"'{sheet_name}' isimli Google Sheets tablosu başarıyla açıldı!")
-            else:
-                st.error("Ne local credentials ne de Streamlit Secrets içinde anahtar bulunamadı!")
-    except Exception as e:
-        import traceback
-        st.error(f"Bağlantı Hatası Detayı: {str(e)}")
-        st.code(traceback.format_exc())
 
 # ----------------------------------------------------
 # Sleek Horizontal Navbar / Giriş & Profil Barı
