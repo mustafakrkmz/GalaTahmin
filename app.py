@@ -245,6 +245,8 @@ def get_gsheet_client():
             
         if secret_key:
             creds_dict = dict(st.secrets[secret_key])
+            if "private_key" in creds_dict:
+                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
             client = gspread.authorize(creds)
             sheet_name = st.secrets.get("GSHEET_NAME", "GS_Skor_Tahmin_DB")
@@ -938,6 +940,8 @@ if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db
                 secret_key = "gcp_service_account"
             if secret_key:
                 creds_dict = dict(st.secrets[secret_key])
+                if "private_key" in creds_dict:
+                    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
                 st.success(f"Secrets '{secret_key}' başarılı şekilde yüklendi.")
                 client = gspread.authorize(creds)
