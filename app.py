@@ -283,6 +283,13 @@ init_db()
 
 # --- DB & KULLANICI YÖNETİM FONKSİYONLARI ---
 
+def normalize_username(text):
+    """Kullanıcı adlarını Türkçe karakter (İ, I, ı) toleransı ile standartlaştırır."""
+    if not text:
+        return ""
+    text = str(text).strip().replace("İ", "i").replace("I", "i").replace("ı", "i").replace("\u0307", "")
+    return text.lower()
+
 def safe_get_all_records(ws, max_retries=2, delay=1.5):
     """Google Sheets 429 kota aşımlarında kısa bekleme ile tekrar dener."""
     for attempt in range(max_retries + 1):
@@ -304,14 +311,14 @@ def fetch_users():
             ws = gs_sheet.worksheet("users")
             data = safe_get_all_records(ws)
             if data:
-                return {str(row.get("username")).strip().lower(): str(row.get("password")).strip() for row in data if str(row.get("username")).strip()}
+                return {normalize_username(row.get("username")): str(row.get("password")).strip() for row in data if str(row.get("username")).strip()}
         except Exception:
             pass
     return {}
 
 def update_user_password(username, new_password):
     """Kullanıcının şifresini Google Sheets bulut tablosunda günceller."""
-    username = str(username).strip().lower()
+    username = normalize_username(username)
     new_password = str(new_password).strip()
     updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -321,7 +328,7 @@ def update_user_password(username, new_password):
             ws = gs_sheet.worksheet("users")
             records = safe_get_all_records(ws)
             for idx, row in enumerate(records, start=2):
-                if str(row.get("username")).strip().lower() == username:
+                if normalize_username(row.get("username")) == username:
                     ws.update_cell(idx, 2, new_password)
                     ws.update_cell(idx, 3, updated_at)
                     break
@@ -363,13 +370,14 @@ def fetch_match_results():
 
 def insert_prediction(username, match_id, match_title, gs_score, away_score):
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    username = normalize_username(username)
     gs_client, gs_sheet = get_gsheet_client()
     
     if gs_sheet:
         ws_p = gs_sheet.worksheet("predictions")
         records = ws_p.get_all_records()
         for idx, row in enumerate(records, start=2):
-            if str(row.get("username")).strip().lower() == str(username).strip().lower() and str(row.get("match_id")) == str(match_id):
+            if normalize_username(row.get("username")) == username and str(row.get("match_id")) == str(match_id):
                 ws_p.update_cell(idx, 3, int(gs_score))
                 ws_p.update_cell(idx, 4, int(away_score))
                 return
@@ -939,7 +947,7 @@ if not st.session_state.logged_in:
         with c_label:
             st.markdown("<div style='line-height: 40px; color: #9ca3af; font-size: 0.9rem; font-weight: 500;'>🔒 Tahmin yapmak için giriş yapın:</div>", unsafe_allow_html=True)
         with c_user:
-            login_user = st.text_input("Kullanıcı Adı", placeholder="Kullanıcı Adı (Örn: ahmet)", label_visibility="collapsed").strip().lower()
+            login_user = normalize_username(st.text_input("Kullanıcı Adı", placeholder="Kullanıcı Adı (Örn: ahmet)", label_visibility="collapsed"))
         with c_pass:
             login_pass = st.text_input("Şifre", type="password", placeholder="Şifre", label_visibility="collapsed")
         with c_btn:
