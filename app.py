@@ -952,6 +952,18 @@ if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db
                 st.write("Temizlenmiş key uzunluğu:", len(pk_clean))
                 st.write("Temizlenmiş key içindeki gerçek newline sayısı:", pk_clean.count("\n"))
                 
+                import hashlib
+                clean_hash = hashlib.sha256(pk_clean.encode('utf-8')).hexdigest()
+                st.write("Temizlenmiş key SHA256:", clean_hash)
+                
+                correct_hash_with = "8952a561e8ccc0f998aaa7b5c6db3533ba8d95afe32905378635b3f80b7c8348"
+                correct_hash_without = "a61f5b6060046caf9ee786f215a81a23e1fe11f603cfee3e9f0e71be04ef3ff6"
+                
+                if clean_hash == correct_hash_with or clean_hash == correct_hash_without:
+                    st.success("✅ ANAHTAR DOĞRU! (Yereldeki credentials.json ile eşleşiyor)")
+                else:
+                    st.error("❌ ANAHTAR HATALI! (Yereldeki credentials.json ile eşleşmiyor. Kopyalarken bir hata oluşmuş!)")
+                
                 creds_dict["private_key"] = pk_clean
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
                 st.success(f"Secrets '{secret_key}' başarılı şekilde yüklendi.")
