@@ -981,7 +981,9 @@ if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db
             else:
                 st.error("Ne local credentials ne de Streamlit Secrets içinde anahtar bulunamadı!")
     except Exception as e:
+        import traceback
         st.error(f"Bağlantı Hatası Detayı: {str(e)}")
+        st.code(traceback.format_exc())
 
 # ----------------------------------------------------
 # Sleek Horizontal Navbar / Giriş & Profil Barı
