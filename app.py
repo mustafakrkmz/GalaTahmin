@@ -130,13 +130,13 @@ st.markdown("""
     
     /* Sleek top login bar styling */
     .login-bar {
-        background: rgba(22, 25, 34, 0.6);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(253, 185, 19, 0.2);
+        background: linear-gradient(135deg, rgba(22, 27, 38, 0.95) 0%, rgba(14, 16, 24, 0.98) 100%);
+        backdrop-filter: blur(16px);
+        border: 1.5px solid rgba(253, 185, 19, 0.4);
         border-radius: 16px;
-        padding: 12px 24px;
+        padding: 16px 24px;
         margin-bottom: 28px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
 
     /* Style Streamlit Tabs for modern UI */
@@ -160,18 +160,29 @@ st.markdown("""
         border-top-right-radius: 8px !important;
     }
     
-    /* Input field styling */
+    /* High-Contrast Modern Input Field Styling */
     .stTextInput input, .stNumberInput input {
-        background-color: rgba(255, 255, 255, 0.04) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background-color: #0b0d13 !important;
+        border: 1.5px solid #333a4d !important;
         color: #ffffff !important;
         border-radius: 10px !important;
-        transition: all 0.3s ease !important;
-        padding: 8px 12px !important;
+        transition: all 0.25s ease !important;
+        padding: 10px 14px !important;
+        font-weight: 500 !important;
+        font-size: 0.95rem !important;
+    }
+    .stTextInput input::placeholder {
+        color: #818ba0 !important;
+        opacity: 1 !important;
+    }
+    .stTextInput input:hover, .stNumberInput input:hover {
+        border-color: rgba(253, 185, 19, 0.6) !important;
+        background-color: #0f121a !important;
     }
     .stTextInput input:focus, .stNumberInput input:focus {
         border-color: #FDB913 !important;
-        box-shadow: 0 0 10px rgba(253, 185, 19, 0.2) !important;
+        background-color: #0e1118 !important;
+        box-shadow: 0 0 0 3px rgba(253, 185, 19, 0.25) !important;
     }
 
     /* Button styling adjustments */
@@ -966,7 +977,7 @@ if not st.session_state.logged_in:
         st.markdown('<div class="login-bar">', unsafe_allow_html=True)
         c_label, c_user, c_pass, c_btn = st.columns([3, 4, 4, 3])
         with c_label:
-            st.markdown("<div style='line-height: 40px; color: #9ca3af; font-size: 0.9rem; font-weight: 500;'>🔒 Tahmin yapmak için giriş yapın:</div>", unsafe_allow_html=True)
+            st.markdown("<div style='line-height: 42px; color: #FFFFFF; font-size: 0.96rem; font-weight: 700; letter-spacing: -0.2px;'>🔒 <span style='color:#FDB913;'>Giriş Yap</span> / Katıl:</div>", unsafe_allow_html=True)
         with c_user:
             login_user = normalize_username(st.text_input("Kullanıcı Adı", placeholder="Kullanıcı Adı (Örn: ahmet)", label_visibility="collapsed"))
         with c_pass:
