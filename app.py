@@ -22,7 +22,7 @@ st.set_page_config(
     page_title="GS Skor Tahmin Portalı",
     page_icon="⚽",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 st.markdown("""
 <style>
@@ -51,10 +51,9 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Modern Streamlit Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #08090c !important;
-        border-right: 1px solid rgba(253, 185, 19, 0.1) !important;
+    /* Hide the entire sidebar component and control button */
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] {
+        display: none !important;
     }
     
     /* Premium Glassmorphic Card Box */
@@ -864,65 +863,51 @@ def check_time_window(match_utc):
     return {"status": "OPEN"}
 
 # ==========================================
-# 4. KULLANICI GİRİŞ ARAYÜZÜ (SIDEBAR)
+# 4. ANA SAYFA & UYGULAMA İÇERİĞİ
 # ==========================================
 
-with st.sidebar:
-    if os.path.exists("logo.svg"):
-        st.image("logo.svg", width=110)
-    else:
-        st.markdown("## 🦁 GS 1905")
-        
-    st.markdown("### 🏆 GS Skor Tahmin")
-    st.divider()
-    
-    gs_client, gs_sheet = get_gsheet_client()
-    if gs_sheet:
-        st.caption("🟢 **Veritabanı:** Google Sheets (Çevrimiçi Canlı Bulut)")
-    else:
-        st.caption("🔴 **Veritabanı:** Google Sheets Bağlantı Hatası! (`credentials.json` dosyasını kontrol edin)")
-
-# ==========================================
-# 5. ANA SAYFA & UYGULAMA İÇERİĞİ
-# ==========================================
-
-# Header Banner with Live Digital Server Clock
+# Header Banner with Live Digital Server Clock & Logo
 now_trt = datetime.now(TRT)
-st.markdown(f"""
-<div style="
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    background: linear-gradient(135deg, rgba(138, 3, 3, 0.95) 0%, rgba(26, 0, 4, 0.98) 100%); 
-    border: 1px solid rgba(253, 185, 19, 0.3); 
-    padding: 24px 28px; 
-    border-radius: 16px; 
-    margin-bottom: 28px; 
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); 
-    flex-wrap: wrap; 
-    gap: 20px;
-">
-    <div>
-        <h1 style="color: #FFFFFF !important; font-weight: 800; font-size: 2.2rem; margin: 0; letter-spacing: -0.5px;">🦁 GALATASARAY <span style="color: #FDB913;">SKOR TAHMİN</span> PORTALI</h1>
-        <div style="color: #e5e7eb !important; font-size: 1.05rem; margin-top: 6px; font-style: italic; font-weight: 400; opacity: 0.9;">"Maçtan önce herkes uzman. Bakalım sonra kim konuşacak."</div>
-    </div>
+col_logo, col_banner = st.columns([1, 8])
+with col_logo:
+    if os.path.exists("logo.svg"):
+        st.image("logo.svg", width=95)
+with col_banner:
+    st.markdown(f"""
     <div style="
-        background: rgba(12, 14, 18, 0.7); 
-        backdrop-filter: blur(10px); 
-        border: 1px solid rgba(253, 185, 19, 0.25); 
-        padding: 12px 20px; 
-        border-radius: 12px; 
-        text-align: center; 
-        min-width: 220px; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        background: linear-gradient(135deg, rgba(138, 3, 3, 0.95) 0%, rgba(26, 0, 4, 0.98) 100%); 
+        border: 1px solid rgba(253, 185, 19, 0.3); 
+        padding: 20px 24px; 
+        border-radius: 16px; 
+        margin-bottom: 28px; 
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); 
+        flex-wrap: wrap; 
+        gap: 20px;
     ">
-        <div style="color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 2px;">🕒 SUNUCU SAATİ</div>
-        <div style="color: #FDB913; font-family: 'Montserrat', sans-serif; font-size: 1.15rem; font-weight: 800;">
-            {now_trt.strftime('%d.%m.%Y %H:%M:%S')} <span style="font-size:0.75rem; color:#9ca3af; font-weight: 500;">TRT</span>
+        <div>
+            <h1 style="color: #FFFFFF !important; font-weight: 800; font-size: 2.1rem; margin: 0; letter-spacing: -0.5px;">🦁 GALATASARAY <span style="color: #FDB913;">SKOR TAHMİN</span> PORTALI</h1>
+            <div style="color: #e5e7eb !important; font-size: 1.02rem; margin-top: 6px; font-style: italic; font-weight: 400; opacity: 0.9;">"Maçtan önce herkes uzman. Bakalım sonra kim konuşacak."</div>
+        </div>
+        <div style="
+            background: rgba(12, 14, 18, 0.7); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(253, 185, 19, 0.25); 
+            padding: 10px 16px; 
+            border-radius: 12px; 
+            text-align: center; 
+            min-width: 200px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        ">
+            <div style="color: #9ca3af; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 2px;">🕒 SUNUCU SAATİ</div>
+            <div style="color: #FDB913; font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 800;">
+                {now_trt.strftime('%d.%m.%Y %H:%M:%S')} <span style="font-size:0.7rem; color:#9ca3af; font-weight: 500;">TRT</span>
+            </div>
         </div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # ----------------------------------------------------
 # Sleek Horizontal Navbar / Giriş & Profil Barı
