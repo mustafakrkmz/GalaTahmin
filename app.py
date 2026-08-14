@@ -6,6 +6,7 @@ import os
 import json
 from datetime import datetime, timezone, timedelta
 import pandas as pd
+import hashlib
 
 # Try importing gspread for Google Sheets support
 try:
@@ -315,6 +316,26 @@ def fetch_users():
         except Exception:
             pass
     return {}
+
+def make_auth_token(username, password):
+    """Kullanıcı oturumunu URL parametresi ile güvenli doğrulamak için imza üretir."""
+    return hashlib.sha256(f"{username}:{password}:GS1905_PORTAL_SALT".encode()).hexdigest()[:20]
+
+def check_and_restore_auth():
+    """Sayfa yenilendiğinde (F5) oturumu URL parametrelerinden otomatik olarak geri yükler."""
+    if not st.session_state.logged_in:
+        u_param = st.query_params.get("u", "")
+        k_param = st.query_params.get("k", "")
+        if u_param and k_param:
+            norm_u = normalize_username(u_param)
+            users = fetch_users()
+            if norm_u in users:
+                expected_k = make_auth_token(norm_u, users[norm_u])
+                if k_param == expected_k:
+                    st.session_state.logged_in = True
+                    st.session_state.username = norm_u
+
+check_and_restore_auth()
 
 def update_user_password(username, new_password):
     """Kullanıcının şifresini Google Sheets bulut tablosunda günceller."""
@@ -956,6 +977,8 @@ if not st.session_state.logged_in:
                 if login_user in current_users and current_users[login_user] == login_pass:
                     st.session_state.logged_in = True
                     st.session_state.username = login_user
+                    st.query_params["u"] = login_user
+                    st.query_params["k"] = make_auth_token(login_user, current_users[login_user])
                     st.toast(f"Hoş geldin, {login_user.upper()}! 🎉", icon="🦁")
                     st.rerun()
                 else:
@@ -983,12 +1006,15 @@ else:
                         st.error("Yeni şifreler birbiriyle eşleşmiyor!")
                     else:
                         update_user_password(st.session_state.username, new_pwd1)
+                        st.query_params["u"] = st.session_state.username
+                        st.query_params["k"] = make_auth_token(st.session_state.username, new_pwd1)
                         st.toast("Şifreniz güncellendi! 🎉", icon="✅")
                         st.rerun()
         with c_out:
             if st.button("🚪 Çıkış Yap", type="secondary", use_container_width=True):
                 st.session_state.logged_in = False
                 st.session_state.username = ""
+                st.query_params.clear()
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
