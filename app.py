@@ -915,6 +915,41 @@ with col_banner:
     </div>
     """, unsafe_allow_html=True)
 
+# --- DEBUG / TEMPORARY DIAGNOSTIC TOOL ---
+if st.checkbox("🔍 Veritabanı Bağlantı Tanılama (Hata Ayıklama)", key="db_diag"):
+    st.subheader("Veritabanı Tanılama Bilgileri")
+    st.write("Lokal `credentials.json` var mı?:", os.path.exists("credentials.json"))
+    st.write("Streamlit Secrets anahtarları:", list(st.secrets.keys()) if hasattr(st.secrets, "keys") else "Secrets bulunamadı")
+    if "gcp_service_account" in st.secrets:
+        st.write("`gcp_service_account` anahtarı bulundu.")
+    if "gdrive" in st.secrets:
+        st.write("`gdrive` anahtarı bulundu.")
+        
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    try:
+        if os.path.exists("credentials.json"):
+            creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
+            st.success("Lokal dosya credentials başarıyla yüklendi.")
+        else:
+            secret_key = None
+            if "gdrive" in st.secrets:
+                secret_key = "gdrive"
+            elif "gcp_service_account" in st.secrets:
+                secret_key = "gcp_service_account"
+            if secret_key:
+                creds_dict = dict(st.secrets[secret_key])
+                creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+                st.success(f"Secrets '{secret_key}' başarılı şekilde yüklendi.")
+                client = gspread.authorize(creds)
+                st.success("Gspread yetkilendirmesi başarılı.")
+                sheet_name = st.secrets.get("GSHEET_NAME", "GS_Skor_Tahmin_DB")
+                sheet = client.open(sheet_name)
+                st.success(f"'{sheet_name}' isimli Google Sheets tablosu başarıyla açıldı!")
+            else:
+                st.error("Ne local credentials ne de Streamlit Secrets içinde anahtar bulunamadı!")
+    except Exception as e:
+        st.error(f"Bağlantı Hatası Detayı: {str(e)}")
+
 # ----------------------------------------------------
 # Sleek Horizontal Navbar / Giriş & Profil Barı
 # ----------------------------------------------------
