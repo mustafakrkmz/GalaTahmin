@@ -237,8 +237,14 @@ def get_gsheet_client():
 
     # 2. Then check Streamlit secrets
     try:
+        secret_key = None
         if "gdrive" in st.secrets:
-            creds_dict = dict(st.secrets["gdrive"])
+            secret_key = "gdrive"
+        elif "gcp_service_account" in st.secrets:
+            secret_key = "gcp_service_account"
+            
+        if secret_key:
+            creds_dict = dict(st.secrets[secret_key])
             creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
             client = gspread.authorize(creds)
             sheet_name = st.secrets.get("GSHEET_NAME", "GS_Skor_Tahmin_DB")
