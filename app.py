@@ -928,10 +928,10 @@ def check_time_window(match_utc):
 
 # Header Banner with Live Digital Server Clock & Logo
 now_trt = datetime.now(TRT)
-col_logo, col_banner = st.columns([1, 8])
+col_logo, col_banner = st.columns([1, 10])
 with col_logo:
     if os.path.exists("logo.svg"):
-        st.image("logo.svg", width=95)
+        st.image("logo.svg", width=68)
 with col_banner:
     st.markdown(f"""
     <div style="
@@ -940,31 +940,33 @@ with col_banner:
         align-items: center; 
         background: linear-gradient(135deg, rgba(138, 3, 3, 0.95) 0%, rgba(26, 0, 4, 0.98) 100%); 
         border: 1px solid rgba(253, 185, 19, 0.3); 
-        padding: 20px 24px; 
-        border-radius: 16px; 
-        margin-bottom: 28px; 
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); 
+        padding: 10px 18px; 
+        border-radius: 12px; 
+        margin-bottom: 16px; 
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); 
         flex-wrap: wrap; 
-        gap: 20px;
+        gap: 12px;
     ">
         <div>
-            <h1 style="color: #FFFFFF !important; font-weight: 800; font-size: 2.1rem; margin: 0; letter-spacing: -0.5px;">🦁 GALATASARAY <span style="color: #FDB913;">SKOR TAHMİN</span> PORTALI</h1>
-            <div style="color: #e5e7eb !important; font-size: 1.02rem; margin-top: 6px; font-style: italic; font-weight: 400; opacity: 0.9;">"Maçtan önce herkes uzman. Bakalım sonra kim konuşacak."</div>
+            <h2 style="color: #FFFFFF !important; font-weight: 800; font-size: 1.35rem; margin: 0; letter-spacing: -0.3px;">🦁 GALATASARAY <span style="color: #FDB913;">SKOR TAHMİN</span> PORTALI</h2>
+            <div style="color: #e5e7eb !important; font-size: 0.85rem; margin-top: 2px; font-style: italic; font-weight: 400; opacity: 0.9;">"Maçtan önce herkes uzman. Bakalım sonra kim konuşacak."</div>
         </div>
         <div style="
-            background: rgba(12, 14, 18, 0.7); 
-            backdrop-filter: blur(10px); 
+            background: rgba(12, 14, 18, 0.75); 
+            backdrop-filter: blur(8px); 
             border: 1px solid rgba(253, 185, 19, 0.25); 
-            padding: 10px 16px; 
-            border-radius: 12px; 
+            padding: 6px 12px; 
+            border-radius: 10px; 
             text-align: center; 
-            min-width: 200px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.25);
         ">
-            <div style="color: #9ca3af; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 2px;">🕒 SUNUCU SAATİ</div>
-            <div style="color: #FDB913; font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 800;">
-                {now_trt.strftime('%d.%m.%Y %H:%M:%S')} <span style="font-size:0.7rem; color:#9ca3af; font-weight: 500;">TRT</span>
-            </div>
+            <span style="color: #9ca3af; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">🕒 SUNUCU:</span>
+            <span style="color: #FDB913; font-family: 'Montserrat', sans-serif; font-size: 0.92rem; font-weight: 800;">
+                {now_trt.strftime('%d.%m.%Y %H:%M:%S')} <span style="font-size:0.68rem; color:#9ca3af; font-weight: 500;">TRT</span>
+            </span>
         </div>
     </div>
     """, unsafe_allow_html=True)
